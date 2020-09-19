@@ -21,4 +21,17 @@ class HelloControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$", Matchers.is("Hello world!")));
     }
+
+    @Test
+    void helloValue() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/helloValue"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("tangseng")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueInt", Matchers.is(1)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueFloat", Matchers.is(1.11)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("sunwukong")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueDouble", Matchers.is(2.22)))
+        ;
+    }
 }
