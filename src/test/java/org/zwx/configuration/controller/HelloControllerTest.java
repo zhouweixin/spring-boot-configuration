@@ -32,6 +32,19 @@ class HelloControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("sunwukong")))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueDouble", Matchers.is(2.22)))
-        ;
+                .andExpect(MockMvcResultMatchers.jsonPath("$.time", Matchers.is("600s")));
+    }
+
+    @Test
+    void getStudent() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/getStudent"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("xiaoming")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.email", Matchers.is("123456@qq.com")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.age", Matchers.is(18)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.friends[0]", Matchers.is("zhubajie")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.friends[1]", Matchers.is("shaheshang")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.parent.father", Matchers.is("tangseng")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.parent.mother", Matchers.is("nverguoguowang")));
     }
 }

@@ -12,10 +12,10 @@ SpringBoot配置及环境变量的加载提供许多便利的方式，接下来�
 
 用你喜欢的方式创建一个SpringBoot工程，并写一个hello的接口，及相应的集成测试，进行实验吧！
 
-hello接口代码
+### 1.1 hello接口代码
 
 HelloController.java
-```shell script
+```java
 @RestController
 public class HelloController {
     @GetMapping("/hello")
@@ -25,10 +25,10 @@ public class HelloController {
 }
 ```
 
-hello集成测试代码
+### 1.2 hello集成测试代码
 
 HelloControllerTest.java
-```shell script
+```java
 @SpringBootTest
 @AutoConfigureMockMvc
 class HelloControllerTest {
@@ -46,6 +46,8 @@ class HelloControllerTest {
 
 ## 2 注解@Value
 
+### 2.1 介绍
+
 @Value通过直接注解在属性上为属性设置
 
 如下所示，为name设置值为tangseng
@@ -55,6 +57,8 @@ HelloController.java
 @Value("tangseng")
 private String name;
 ```
+
+### 2.2 加载配置文件
 
 当然，上面的写法不涉及配置文件的读取，但是从配置文件加载数据也是同样简单
 
@@ -72,6 +76,8 @@ application.properties
 ```properties
 value.string=sunwukong
 ```
+
+### 2.3 数据类型转换
 
 当然，@Value的功能还远不止于此，它可以实现数据类型的转换
 
@@ -102,6 +108,8 @@ private String valueString;
 private boolean valueBool;
 ```
 
+### 2.4 默认值
+
 写到这里，你肯定认为@Value注解的功能就结束了
 
 然而，并没有，@Value还可以设置默认值
@@ -115,6 +123,34 @@ HelloController.java
 @Value("${value.double:2.22}")
 private double valueDouble;
 ```
+
+### 2.5 时间转换
+
+这次，你一定又一次认为@Value的学习结束了，但是想再分享@Value对时间的处理，因为实际项目中经常会配置超时时间等类似的时间，比较实用
+
+假如配置文件里配置了`timeout=60`，你认为是60s呢还是60ms，或是60m，是不是有点不清楚呢？
+
+因此，多是配置成`timeout=60s`, 利用@DurationUnit进行单位的转换
+
+还是看个例子比较直观些
+
+首先配置一个`10分钟`
+
+application.properties
+```properties
+value.time=10m
+```
+
+然后用`秒`去解析，看看结果是否正确，这里悄悄告诉你，结果依然是正确的，转成了`600s`
+
+HelloController.java
+```java
+@Value("${value.time}")
+@DurationUnit(ChronoUnit.SECONDS)
+private Duration time;
+```
+
+### 2.6 集成测试
 
 接下来，写个接口及集成测试，测试一下结果
 
@@ -145,12 +181,108 @@ void helloValue() throws Exception {
             .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("sunwukong")))
             .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)))
             .andExpect(MockMvcResultMatchers.jsonPath("$.valueDouble", Matchers.is(2.22)))
-    ;
+            .andExpect(MockMvcResultMatchers.jsonPath("$.time", Matchers.is("600s")));
 }
 ```
 
 当然也可以用请求查看一下结果
-```shell script
+```shell
 $ curl http://localhost:8080/helloValue
-{"valueString":"sunwukong","name":"tangseng","valueDouble":2.22,"valueInt":1,"valueFloat":1.11,"valueBool":true}
+{"valueString":"sunwukong","name":"tangseng","valueDouble":2.22,"time":"600s","valueInt":1,"valueFloat":1.11,"valueBool":true}
+```
+
+## 3 注解@ConfigurationProperties
+
+### 3.1 介绍
+
+@ConfigurationProperties实现了更加丰富的功能，但是该属性需要配置@ConfigurationPropertiesScan使用
+
+即，首先需要将@ConfigurationPropertiesScan注解到启动类上，即XxxApplication.java
+
+然后便可以利用@ConfigurationProperties上
+
+@ConfigurationProperties是用来注解类上，用来批量从配置文件中加载数据
+
+比如，配置中有如下属性
+
+application.properties
+```properties
+student.name=xiaoming
+student.email=123456@qq.com
+student.age=18
+```
+
+便可以定义Student类，并将@ConfigurationProperties注解其上
+
+注意：属性名需要和配置文件里对应的名字相同，你肯定观察到了
+
+Student.java
+```java
+@ConfigurationProperties("student")
+public class Student {
+    private String name;
+    private String email;
+    private int age;
+    
+    // ... 省略setter, getter方法， setter方法必须有
+}
+```
+
+### 3.2 加载集合数据
+
+@ConfigurationProperties除了可以读单值数据，也可以读List和Map数据
+
+比如，配置文件里有如下配置
+
+application.properties
+```properties
+# class.list
+student.friends[0]=zhubajie
+student.friends[1]=shaheshang
+
+# class.map
+student.parent.father=tangseng
+student.parent.mother=nverguoguowang
+```
+
+只需要在Student类中再添加两个属性即可，不要忘记setter和getter方法哟
+
+Student.java
+```java
+private List<String> friends;
+private Map<String, String> parent;
+```
+
+添加getStudent接口
+
+HelloController.java
+```java
+@GetMapping("/getStudent")
+public Student getStudent() {
+    return student;
+}
+```
+
+### 3.3 集成测试
+
+HelloControllerTest.java
+```java
+@Test
+void getStudent() throws Exception {
+    mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/getStudent"))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("xiaoming")))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.email", Matchers.is("123456@qq.com")))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.age", Matchers.is(18)))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.friends[0]", Matchers.is("zhubajie")))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.friends[1]", Matchers.is("shaheshang")))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.parent.father", Matchers.is("tangseng")))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.parent.mother", Matchers.is("nverguoguowang")));
+}
+```
+
+直接求观测也是可以的
+```shell
+$ curl http://localhost:8080/getStudent
+{"name":"xiaoming","email":"123456@qq.com","age":18,"friends":["zhubajie","shaheshang"],"parent":{"father":"tangseng","mother":"nverguoguowang"}}
 ```
