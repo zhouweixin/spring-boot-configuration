@@ -32,7 +32,11 @@ class HelloControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("sunwukong")))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.valueDouble", Matchers.is(2.22)))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.time", Matchers.is("600s")));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.time", Matchers.is("600s")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.JAVA_HOME", Matchers.is("/Users/zhouweixin/.sdkman/candidates/java/current")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.GRADLE_HOME", Matchers.is("/Users/zhouweixin/.sdkman/candidates/gradle/current")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.NO_ENV", Matchers.is("no env variable")))
+        ;
     }
 
     @Test

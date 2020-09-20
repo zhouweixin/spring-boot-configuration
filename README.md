@@ -286,3 +286,37 @@ void getStudent() throws Exception {
 $ curl http://localhost:8080/getStudent
 {"name":"xiaoming","email":"123456@qq.com","age":18,"friends":["zhubajie","shaheshang"],"parent":{"father":"tangseng","mother":"nverguoguowang"}}
 ```
+
+## 4 环境变量
+
+### 4.1 介绍
+
+在实际项目场景中，环境变量也是一种动态配置的有效方案
+
+比如，在本地加载local的环境变量，在dev加载dev的环境变量
+
+SpringBoot对于环境变量的加载比较简单，只需要Environment类即可，但是需要注意该类的包，不要导错了
+```java
+import org.springframework.core.env.Environment;
+```
+
+使用过程，首先注入
+
+HelloController.java
+```java
+@Autowired
+private Environment env;
+```
+
+然后你便可以通过getProperty获取环境变量了
+```java
+result.put("JAVA_HOME", env.getProperty("JAVA_HOME"));
+result.put("GRADLE_HOME", env.getProperty("GRADLE_HOME"));
+result.put("NO_ENV", env.getProperty("NO_ENV", "no env variable"));
+```
+
+是不是特别简单呢，其实就是这么简单，下面就不多验证了
+
+
+
+

@@ -2,8 +2,8 @@ package org.zwx.configuration.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
+import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,6 +37,9 @@ public class HelloController {
     private Duration time;
 
     @Autowired
+    private Environment env;
+
+    @Autowired
     private Student student;
 
     @GetMapping("/hello")
@@ -54,6 +57,9 @@ public class HelloController {
         result.put("valueBool", valueBool);
         result.put("valueDouble", valueDouble);
         result.put("time", time.getSeconds() + "s");
+        result.put("JAVA_HOME", env.getProperty("JAVA_HOME"));
+        result.put("GRADLE_HOME", env.getProperty("GRADLE_HOME"));
+        result.put("NO_ENV", env.getProperty("NO_ENV", "no env variable"));
         return result;
     }
 
