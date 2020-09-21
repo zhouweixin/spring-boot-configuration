@@ -4,6 +4,17 @@ SpringBoot配置及环境变量的加载提供许多便利的方式，接下来�
 
 本章内容的源码按实战过程采用小步提交，可以按提交的节点一步一步来学习，仓库地址：https://github.com/zhouweixin/spring-boot-configuration。
 
+
+
+本文将要介绍
+
+1. SpringBoot配置的加载
+2. SrpingBoot环境变量的加载
+3. 测试时动态设置配置
+4. 启动时动态设置配置
+
+
+
 环境：
 * java: 1.8.0_265
 * gradle: 6.6.1
@@ -287,7 +298,7 @@ $ curl http://localhost:8080/getStudent
 {"name":"xiaoming","email":"123456@qq.com","age":18,"friends":["zhubajie","shaheshang"],"parent":{"father":"tangseng","mother":"nverguoguowang"}}
 ```
 
-## 4 环境变量
+## 4 环境变量Environment
 
 ### 4.1 介绍
 
@@ -317,6 +328,258 @@ result.put("NO_ENV", env.getProperty("NO_ENV", "no env variable"));
 
 是不是特别简单呢，其实就是这么简单，下面就不多验证了
 
+## 5 测试动态指定配置
+
+### 5.1 介绍
+
+下面介绍测试时动态修改配置
+
+你在项目中是不是经常碰到集成测试和运行属性不一样的值的，本章就是解决该问题的
+
+接下来介绍3种方法
+
+### 5.2 注解@ActiveProfiles
+
+该注解的使用比较简单，可以动态指定加载的配置文件
+
+首先，复制一份`application.properties`，命名为`application-dev.properties`
+
+修改一部分值
+
+application-dev.properties
+```properties
+# simple value
+value.int=2
+value.float=2.22
+value.string=zhubajie
+value.bool=false
+value.time=1s
+```
+
+接着，复制一份`HelloControllerTest.java`，命名为`ActiveProfilesTest.java`
+
+在类上添加注解`@ActiveProfiles("local")`，就完成了该测试类动态加载配置文件的目的
+
+ActiveProfilesTest.java
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("local")
+class ActiveProfilesTest {
+    @Autowired
+    MockMvc mockMvc;
+
+    @Test
+    void helloValue() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/helloValue"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueInt", Matchers.is(2)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueFloat", Matchers.is(2.22)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("zhubajie")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(false)));
+    }
+}
+```
+
+该注解有个缺陷，指定配置文件的命名必须是固定的格式`application-xxx.properties`
+
+而对于外部的配置文件或者其它格式命名的却无法加载
+
+### 5.3 注解@TestPropertySource
+
+**属性locations**
+
+该注解恰好是用来解决@ActiveProfiles的不足的
+
+其locations属性可以加载任意的配置文件，只要存在
+
+示例
+
+TestPropertyResourceTest.java
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(locations = {"/a.properties"})
+class TestPropertyResourceTest {
+    @Autowired
+    MockMvc mockMvc;
+
+    @Test
+    void helloValue() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/helloValue"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueInt", Matchers.is(3)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueFloat", Matchers.is(3.33)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("shaheshang")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)));
+    }
+}
+```
+
+a.properties
+```properties
+# simple value
+value.int=3
+value.float=3.33
+value.string=shaheshang
+value.bool=true
+```
+
+该属性的使用就是这么简单
+
+然而，当仅需要指定很少属性的时候，通过指定配置文件的方式显得过于笨重
+
+**属性properties**
+
+locations属性对于指定部分属性就很直接了，而且其优先级高于属性locations
+
+示例
+
+TestPropertyResource2Test.java
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = {"value.int=10", "value.float=10.10"}, locations = {"/a.properties"})
+class TestPropertyResource2Test {
+    @Autowired
+    MockMvc mockMvc;
+
+    @Test
+    void helloValue() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/helloValue"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueInt", Matchers.is(10)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueFloat", Matchers.is(10.10)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueString", Matchers.is("shaheshang")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.valueBool", Matchers.is(true)));
+    }
+}
+```
+
+## 6 启动时动态指定配置
+
+你肯定了解过spring启动的方法
+
+1. 通过开发工具（idea, eclipse）启动
+2. java命令启动
+3. gradle命令启动
+4. maven命令启动
+5. 。。。
 
 
 
+通过开发工具启动指定配置相对比较简单，如下图中的红框所示，可以方便的设置
+
+1. Environment variables：环境变量
+2. Active profiles：配置文件
+3. Override parameters：参数
+
+
+
+### 6.1 通过idea设置
+
+![image-20200921215130704](/Users/zhouweixin/Library/Application Support/typora-user-images/image-20200921215130704.png)
+
+设置完后，通过浏览器访问接口`http://localhost:8080/helloValue`的结果如下
+
+```json
+{
+    "NO_ENV": "no env variable",
+    "valueString": "sunwukong",
+    "name": "tangseng",
+    "JAVA_HOME": "test_java_home",
+    "valueDouble": 2.22,
+    "time": "600s",
+    "valueInt": 1111,
+    "valueFloat": 1.11,
+    "valueBool": true,
+    "GRADLE_HOME": "/Users/zhouweixin/.sdkman/candidates/gradle/current"
+}
+```
+
+
+
+通常开发完成后会部署到linux系统中，这时通过命令指定配置则尤其显得重要
+
+
+
+### 6.2 通过java命令设置
+
+在学习之前先学会打包
+
+* 用maven工程的可以用`mvn package`打包
+
+* 用gradle工程的可以用`gradle bootJar`打包
+
+
+
+笔者采用的gradle打包，生成文件：`build/libs/configuration-0.0.1-SNAPSHOT.jar`
+
+```shell
+$ gradle bootJar            
+
+BUILD SUCCESSFUL in 676ms
+3 actionable tasks: 1 executed, 2 up-to-date
+```
+
+
+
+该jar文件拷贝到任何机器上都可以运行，前提是该机器安装了jre，启动命令也比较简单
+
+```
+java -jar build/libs/configuration-0.0.1-SNAPSHOT.jar
+```
+
+
+
+通过浏览器访问接口`http://localhost:8080/helloValue`的结果如下，加载的是`application.properties`
+
+```json
+{
+    "NO_ENV": "no env variable",
+    "valueString": "sunwukong",
+    "name": "tangseng",
+    "JAVA_HOME": "/Users/zhouweixin/.sdkman/candidates/java/current",
+    "valueDouble": 2.22,
+    "time": "600s",
+    "valueInt": 1,
+    "valueFloat": 1.11,
+    "valueBool": true,
+    "GRADLE_HOME": "/Users/zhouweixin/.sdkman/candidates/gradle/current"
+}
+```
+
+
+
+指定`application-local.properties`也比较容易
+
+```shell
+java -jar build/libs/configuration-0.0.1-SNAPSHOT.jar --spring.profiles.active=local
+```
+
+
+
+仅设置部分属性的方式
+
+```java
+java -jar build/libs/configuration-0.0.1-SNAPSHOT.jar --value.int=1000 --value.string=zhangsanfeng
+```
+
+
+
+## 总结
+
+本文粗略地记录了常用的
+
+1. SpringBoot配置的加载
+2. SrpingBoot环境变量的加载
+3. 测试时动态设置配置
+4. 启动时动态设置配置
+
+
+
+本文仅为了抛砖引玉，好学的你一起来努力吧！
+
+
+
+错误及不全面的地方多谢批评指正！
